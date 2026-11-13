@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ElGamal encryption, step by step</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f6;--surf:#fff;--ink:#14213d;--mute:#5b6784;--line:#d4dae6;--alice:#3a3fd1;--alice-t:#e6e7fb;--bob:#b86a00;--bob-t:#fbefd9;--sec:#c2273d;--sec-t:#fbe4e8;--ok:#13795b;--ok-t:#dcf3ea;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1524;--surf:#182036;--ink:#e8ecf7;--mute:#9aa6c4;--line:#2c3856;--alice:#8c91ff;--alice-t:#232a55;--bob:#f0a73c;--bob-t:#3a2c12;--sec:#ff7a8e;--sec-t:#43202a;--ok:#4fd1a1;--ok-t:#16372f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1524;--surf:#182036;--ink:#e8ecf7;--mute:#9aa6c4;--line:#2c3856;--alice:#8c91ff;--alice-t:#232a55;--bob:#f0a73c;--bob-t:#3a2c12;--sec:#ff7a8e;--sec-t:#43202a;--ok:#4fd1a1;--ok-t:#16372f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:920px;margin:0 auto;padding:32px 18px 64px}
+h1{font:800 clamp(2rem,6vw,3.2rem)/1.05 "Bricolage Grotesque",system-ui,sans-serif;margin:0 0 10px;letter-spacing:-.02em}
+h2{font:700 1.35rem/1.2 "Bricolage Grotesque",system-ui,sans-serif;margin:0}
+.lede{max-width:62ch;color:var(--mute);margin:0 0 26px}
+code,.m,input,textarea{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.stage{border-left:6px solid var(--c);padding-left:14px;margin:0 0 26px}
+.stage.a{--c:var(--alice);--t:var(--alice-t)}.stage.b{--c:var(--bob);--t:var(--bob-t)}
+.who{display:inline-block;background:var(--t);color:var(--c);font-weight:600;font-size:.85rem;padding:2px 10px;border-radius:99px;margin-bottom:6px}
+.stage>p{margin:4px 0 12px;color:var(--mute);max-width:64ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+label{display:block;font-size:.85rem;font-weight:500;color:var(--mute);margin-bottom:4px}
+input,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:.95rem}
+textarea{resize:vertical;min-height:60px}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--alice);outline-offset:1px}
+button{font:600 .9rem "IBM Plex Sans",sans-serif;border:1px solid var(--c,var(--ink));background:var(--c,var(--ink));color:var(--surf);border-radius:6px;padding:9px 16px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+button:hover{filter:brightness(1.1)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surf)}
+.err{color:var(--sec);background:var(--sec-t);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:.92rem}
+.err:empty{display:none}
+.out{margin-top:14px}
+.st{display:grid;grid-template-columns:150px 1fr;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.st:first-child{border-top:0}
+.lab{font-weight:500}
+.fx{font-family:"IBM Plex Mono",monospace;font-size:.92rem;overflow-x:auto}
+.fx b{color:var(--c);font-size:1.05em}
+.fx .why{display:block;font-family:"IBM Plex Sans",sans-serif;color:var(--mute);font-size:.85rem;margin-top:2px}
+@media(max-width:560px){.st{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:"IBM Plex Mono",monospace;font-size:.88rem}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:500 .8rem "IBM Plex Sans",sans-serif;color:var(--mute)}
+.result{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--ok-t);color:var(--ok);font-weight:600;overflow-wrap:anywhere}
+.result.bad{background:var(--sec-t);color:var(--sec)}
+.wire{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+@media(max-width:560px){.wire{grid-template-columns:1fr}}
+.wire>div{border-radius:8px;padding:10px 12px;font-size:.9rem}
+.pub{background:var(--bob-t)}.pri{background:var(--sec-t)}
+.wire h3{font:700 .95rem "Bricolage Grotesque",sans-serif;margin:0 0 4px}
+.wire code{display:block;overflow-wrap:anywhere}
+.key{display:inline-block;margin:6px 8px 0 0;padding:4px 10px;border-radius:6px;font-family:"IBM Plex Mono",monospace;font-size:.9rem}
+.key.pub{background:var(--bob-t)}.key.pri{background:var(--sec-t);color:var(--sec)}
+.hide{display:none}
+details{margin-top:8px;color:var(--mute);font-size:.92rem}
+summary{cursor:pointer;color:var(--ink);font-weight:500}
+.hist{list-style:none;margin:12px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.hist li{position:relative;padding:0 0 16px 14px;max-width:68ch}
+.hist li::before{content:"";position:absolute;left:-25px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--bob);border:2px solid var(--surf)}
+.hist b.y{font:700 1.05rem "Bricolage Grotesque",sans-serif;display:block}
+.hist span{color:var(--mute);font-size:.95rem}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>ElGamal, one step at a time</h1>
+<p class="lede">Alice publishes a public key. Bob uses it to lock a message. Only Alice’s private number can unlock it. Change any value below and watch every calculation update.</p>
+
+<div class="card" id="history">
+ <h2 style="margin-bottom:2px">Background and history</h2>
+ <ul style="margin:8px 0 0;padding-left:20px;max-width:64ch">
+  <li>ElGamal is based on discrete logarithms and is closely related to the Diffie–Hellman technique.</li>
+  <li>Applications: digital signature standards (DSS) and S/MIME email standards.</li>
+ </ul>
+ <ol class="hist">
+  <li><b class="y">1976: Diffie–Hellman key exchange</b><span>Whitfield Diffie and Martin Hellman show that two people can agree on a shared secret over an open channel, using modular exponentiation and the discrete logarithm problem. It is the mathematical seed of ElGamal.</span></li>
+  <li><b class="y">1977–78: RSA</b><span>Rivest, Shamir and Adleman publish the first practical public-key system, built on factoring instead of discrete logs.</span></li>
+  <li><b class="y">1984–85: Taher ElGamal’s paper</b><span>A student of Hellman at Stanford, Taher ElGamal turns Diffie–Hellman into a full encryption scheme plus a signature scheme. It was published in 1985 in IEEE Transactions on Information Theory.</span></li>
+  <li><b class="y">Standards: DSS and S/MIME</b><span>The scheme’s discrete-log ideas appear in digital signature standards (DSS) and in S/MIME email standards. DSS specifies its own signature algorithm (DSA), which is related to ElGamal signatures but not identical, and not every S/MIME system uses ElGamal.</span></li>
+ </ol>
+</div>
+
+<div class="card">
+ <div class="bar" style="margin:0 0 12px">
+  <span style="font-weight:500">Start from</span>
+  <button class="ghost" id="p1">Notes example (q = 19)</button>
+  <button class="ghost" id="p2">Text-ready example (q = 467)</button>
+ </div>
+ <p style="margin:0 0 12px;max-width:64ch"><b>Global public elements:</b> q is a prime number, and α is a primitive root of q with α &lt; q.</p>
+ <div class="grid">
+  <div><label for="q">Prime q</label><input id="q" inputmode="numeric" value="19"></div>
+  <div><label for="al">Primitive root α</label><input id="al" inputmode="numeric" value="10"></div>
+  <div><label for="xa">Alice’s private key xA</label><input id="xa" inputmode="numeric" value="5"></div>
+ </div>
+ <div class="err" id="e1" role="alert"></div>
+</div>
+
+<section class="stage a">
+ <span class="who">Alice</span>
+ <h2>1. Make a key pair</h2>
+ <p>Alice computes yA = α<sup>xA</sup> mod q, then publishes (q, α, yA) and keeps xA to herself.</p>
+ <div id="keys" class="out"></div>
+ <details><summary>Why can’t anyone just work out xA?</summary>
+  <p>Going forward is quick. Going backward means solving the discrete logarithm problem: given yA, find xA. With a tiny q like 23 that’s easy by trial; with a prime of 2000+ bits it is not feasible.</p></details>
+</section>
+
+<section class="stage b">
+ <span class="who">Bob</span>
+ <h2>2. Encrypt with Alice’s public key</h2>
+ <p>Bob picks a fresh random k, then sends the pair (C1, C2). He never needs xA. K acts as a one-time key used to encrypt and decrypt the message.</p>
+ <div class="bar" style="margin:0 0 12px">
+  <div class="seg" role="group" aria-label="Message type">
+   <button id="mNum" aria-pressed="true">Number</button><button id="mTxt" aria-pressed="false">Text</button>
+  </div>
+ </div>
+ <div class="grid">
+  <div><label for="msg" id="msgL">Message M (1 to q − 1)</label><input id="msg" value="17"></div>
+  <div id="kBox"><label for="k">Random k (1 to q − 2)</label><input id="k" inputmode="numeric" value="6"></div>
+ </div>
+ <div class="bar"><button id="enc" style="--c:var(--bob)">Encrypt</button><button class="ghost" id="rk">Encrypt with a new random k</button></div>
+ <div class="err" id="e2" role="alert"></div>
+ <div id="encOut" class="out"></div>
+</section>
+
+<section class="stage a">
+ <span class="who">Alice</span>
+ <h2>3. Decrypt with the private key</h2>
+ <p>Alice rebuilds the shared secret K from C1 and xA, undoes the multiplication with K’s inverse, and gets M back. You can edit the ciphertext to see what happens.</p>
+ <label for="ct">Ciphertext pairs (C1, C2)</label>
+ <textarea id="ct" rows="2"></textarea>
+ <div class="bar"><button id="dec">Decrypt</button></div>
+ <div class="err" id="e3" role="alert"></div>
+ <div id="decOut" class="out"></div>
+</section>
+
+<div class="card" id="wireCard">
+ <h2 style="margin-bottom:4px">What an eavesdropper sees</h2>
+ <div id="wire" style="color:var(--mute)">Encrypt a message to see which values are public and which stay secret.</div>
+</div>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const mp=(b,e,m)=>{let r=1n;b%=m;while(e>0n){if(e&1n)r=r*b%m;b=b*b%m;e>>=1n}return r};
+const isPrime=n=>{if(n<2n)return false;for(let i=2n;i*i<=n;i++)if(n%i===0n)return false;return true};
+const factors=n=>{const f=[];for(let p=2n;p*p<=n;p++){if(n%p===0n){f.push(p);while(n%p===0n)n/=p}}if(n>1n)f.push(n);return f};
+const isRoot=(a,q)=>factors(q-1n).every(p=>mp(a,(q-1n)/p,q)!==1n);
+const roots=q=>{const r=[];for(let a=2n;a<q;a++)if(isRoot(a,q))r.push(a);return r};
+const inv=(a,m)=>{let r0=m,r1=a%m,t0=0n,t1=1n;while(r1){const d=r0/r1;[r0,r1]=[r1,r0-d*r1];[t0,t1]=[t1,t0-d*t1]}return r0===1n?((t0%m)+m)%m:null};
+const num=s=>/^\d{1,13}$/.test(String(s).trim())?BigInt(String(s).trim()):null;
+const rnd=(lo,hi)=>lo+BigInt(Math.floor(Math.random()*Number(hi-lo+1n)));
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const pw=(b,e,m)=>{const r=mp(b,e,m);let raw="";if(e<=64n&&(b**e).toString().length<=18)raw=` = ${b**e} mod ${m}`;return `${b}<sup>${e}</sup> mod ${m}${raw} = <b>${r}</b>`};
+const st=(lab,fx,why)=>`<div class="st"><div class="lab">${lab}</div><div class="fx">${fx}${why?`<span class="why">${why}</span>`:""}</div></div>`;
+let mode="num",P=null,last=null;
+
+function readParams(){
+ const q=num($("q").value),a=num($("al").value),x=num($("xa").value);let m="";
+ if(q===null||a===null||x===null)m="Enter q, α and xA as whole numbers (up to 13 digits).";
+ else if(q<5n)m="q must be a prime of at least 5.";
+ else if(!isPrime(q))m=`${q} is not prime. Try a prime like 23, 101 or 467.`;
+ else if(a<2n||a>=q)m=`α must be between 2 and ${q-1n}.`;
+ else if(!isRoot(a,q))m=`${a} is not a primitive root modulo ${q}, so its powers don’t reach every value. Try another α.`;
+ else if(x<1n||x>q-2n)m=`xA must be between 1 and ${q-2n}.`;
+ $("e1").textContent=m;
+ if(m){P=null;return null}
+ return P={q,a,x,y:mp(a,x,q)};
+}
+function genKeys(){
+ const p=readParams();
+ if(!p){$("keys").innerHTML="";return}
+ const rr=p.q<=500n?st(`Primitive roots of ${p.q}`,`{ ${roots(p.q).join(", ")} }`,`α = ${p.a} is one of them`):"";
+ const pt=p.q<=60n?`<details><summary>Show powers of α = ${p.a} mod ${p.q}</summary><div class="fx" style="margin-top:6px">${Array.from({length:Number(p.q)-1},(_,i)=>`${p.a}<sup>${i+1}</sup> = ${mp(p.a,BigInt(i+1),p.q)}`).join(" · ")}</div></details>`:"";
+ $("keys").innerHTML=rr+st("Public value yA",pw(p.a,p.x,p.q))+
+  `<div><span class="key pub">Public key (q, α, yA) = (${p.q}, ${p.a}, ${p.y})</span><span class="key pri">Private key xA = ${p.x}</span></div>`+pt;
+ $("msgL").textContent=mode==="num"?`Message M (1 to ${p.q-1n})`:`Message text (characters with codes below ${p.q})`;
+}
+function setMode(m){
+ mode=m;$("mNum").setAttribute("aria-pressed",m==="num");$("mTxt").setAttribute("aria-pressed",m==="txt");
+ $("kBox").classList.toggle("hide",m==="txt");
+ $("msg").value=m==="num"?"17":"Hi Alice";
+ $("msgL").textContent=m==="num"?"Message M (1 to q − 1)":"Message text";
+ if(P)genKeys();
+}
+function detail(it,dec){
+ const {q,a,x,y}=P;
+ if(!dec){
+  return st("Shared secret K",pw(y,it.k,q),"K = yA<sup>k</sup> mod q")+
+   st("First part C1",pw(a,it.k,q),"C1 = α<sup>k</sup> mod q")+
+   st("Second part C2",`${it.K} × ${it.M} mod ${q} = ${it.K*it.M} mod ${q} = <b>${it.c2}</b>`,"C2 = K × M mod q")+
+   `<div class="result" style="background:var(--bob-t);color:var(--bob)">Ciphertext (C1, C2) = (${it.c1}, ${it.c2})</div>`;
+ }
+ return st("Rebuild K",pw(it.c1,x,q),"K = C1<sup>xA</sup> mod q, the same K Bob used")+
+  st("Inverse of K",it.ki===null?"no inverse exists":`${it.K} × ${it.ki} mod ${q} = ${it.K*it.ki%q}, so K<sup>−1</sup> = <b>${it.ki}</b>`,"K<sup>−1</sup> × K mod q = 1, found with the extended Euclidean algorithm")+
+  st("Recover M",`${it.c2} × ${it.ki} mod ${q} = ${it.c2*it.ki} mod ${q} = <b>${it.M}</b>`,"M = C2 × K<sup>−1</sup> mod q");
+}
+function table(rows,dec){
+ const h=dec?"<th>Char</th><th>C1</th><th>C2</th><th>K = C1<sup>xA</sup></th><th>K⁻¹</th><th>M</th>":"<th>Char</th><th>M</th><th>k</th><th>K</th><th>C1</th><th>C2</th>";
+ return `<div class="tw"><table><tr>${h}</tr>${rows.map(r=>dec?
+  `<tr><td>${esc(r.ch)}</td><td>${r.c1}</td><td>${r.c2}</td><td>${r.K}</td><td>${r.ki}</td><td>${r.M}</td></tr>`:
+  `<tr><td>${esc(r.ch)}</td><td>${r.M}</td><td>${r.k}</td><td>${r.K}</td><td>${r.c1}</td><td>${r.c2}</td></tr>`).join("")}</table></div>`;
+}
+function encrypt(forceRandom){
+ const p=P||readParams();$("e2").textContent="";
+ if(!p){$("e2").textContent="Fix the key settings first.";return}
+ const {q,a,y}=p,items=[];let msg=$("msg").value;
+ if(mode==="num"){
+  const M=num(msg);
+  if(M===null||M<1n||M>=q){$("e2").textContent=`M must be a whole number from 1 to ${q-1n}.`;return}
+  let k=num($("k").value);
+  if(forceRandom||k===null||k<1n||k>q-2n){if(!forceRandom&&$("k").value.trim()!==""){$("e2").textContent=`k must be from 1 to ${q-2n}.`;return}k=rnd(1n,q-2n);$("k").value=k}
+  items.push({ch:String(M),M,k});
+ }else{
+  if(!msg){$("e2").textContent="Type a message to encrypt.";return}
+  for(const ch of msg){const c=BigInt(ch.codePointAt(0));
+   if(c>=q){$("e2").textContent=`“${ch}” has code ${c}, which is not smaller than q = ${q}. Use a larger prime such as 467 for text.`;return}
+   items.push({ch,M:c,k:rnd(1n,q-2n)})}
+ }
+ for(const it of items){it.K=mp(y,it.k,q);it.c1=mp(a,it.k,q);it.c2=it.K*it.M%q}
+ last={msg,items};
+ $("encOut").innerHTML=items.length===1?detail(items[0],false):table(items,false);
+ $("ct").value=items.map(i=>`(${i.c1}, ${i.c2})`).join(" ");
+ const it=items[0];
+ $("wire").innerHTML=`<div class="wire"><div class="pub"><h3>Public: anyone can read it</h3><code>q = ${q}, α = ${a}, yA = ${y}</code><code>${items.map(i=>`(${i.c1}, ${i.c2})`).join(" ")}</code></div>
+ <div class="pri"><h3>Secret: never sent</h3><code>xA = ${p.x} (Alice)</code><code>k = ${items.map(i=>i.k).join(", ")} (Bob)</code><code>K = ${items.map(i=>i.K).join(", ")}</code><code>M = ${esc(items.map(i=>mode==="num"?i.M:i.ch).join(mode==="num"?", ":""))}</code></div></div>
+ <p style="margin:10px 0 0">To get M, an eavesdropper would have to find xA or k, which means solving the discrete logarithm problem. Press “Encrypt with a new random k” and the ciphertext changes even though M does not.</p>`;
+ decrypt(true);
+}
+function decrypt(quiet){
+ const p=P||readParams();$("e3").textContent="";
+ if(!p)return;
+ const {q,x}=p,pairs=[...$("ct").value.matchAll(/(\d+)\s*,\s*(\d+)/g)].map(m=>[BigInt(m[1]),BigInt(m[2])]);
+ if(!pairs.length){if(!quiet)$("e3").textContent="Enter ciphertext as pairs like (10, 14).";$("decOut").innerHTML="";return}
+ const rows=[];
+ for(const [c1,c2] of pairs){
+  if(c1<1n||c1>=q||c2<0n||c2>=q){$("e3").textContent=`Each value must be between 0 and ${q-1n} (and C1 at least 1).`;return}
+  const K=mp(c1,x,q),ki=inv(K,q);rows.push({c1,c2,K,ki,M:ki===null?0n:c2*ki%q})}
+ const text=rows.map(r=>mode==="txt"&&r.M>0n?String.fromCodePoint(Number(r.M)):"");
+ for(let i=0;i<rows.length;i++)rows[i].ch=text[i];
+ const out=mode==="num"?rows.map(r=>r.M).join(", "):text.join("");
+ const orig=last?(mode==="num"?last.items.map(i=>i.M).join(", "):last.msg):null;
+ const ok=orig!==null&&out===orig;
+ $("decOut").innerHTML=(rows.length===1?detail(rows[0],true):table(rows,true))+
+  `<div class="result ${orig!==null&&!ok?"bad":""}">Recovered: ${esc(out)}${orig===null?"":ok?" ✓ matches what Bob encrypted":" ✗ differs from what Bob encrypted (the ciphertext was changed)"}</div>`;
+}
+["q","al","xa"].forEach(i=>$(i).addEventListener("input",()=>{genKeys()}));
+$("mNum").onclick=()=>setMode("num");$("mTxt").onclick=()=>setMode("txt");
+$("enc").onclick=()=>encrypt(false);$("rk").onclick=()=>encrypt(true);$("dec").onclick=()=>decrypt(false);
+function preset(q,a,x,m,msg,k){$("q").value=q;$("al").value=a;$("xa").value=x;setMode(m);$("msg").value=msg;if(k)$("k").value=k;genKeys();last=null;encrypt(false)}
+$("p1").onclick=()=>preset(19,10,5,"num","17",6);
+$("p2").onclick=()=>preset(467,2,153,"txt","Hi Alice");
+preset(19,10,5,"num","17",6);
+</script>
+</body>
+</html>
